@@ -1,0 +1,18 @@
+# Les fichiers qu'on doit pas suivre
+
+#Environnement Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+#Model ML
+models/*.pkl
+
+# Fichiers OS
+. DS_Store
+Thumbs.db
+
+#IDE
+.vscode/
+.idea/
