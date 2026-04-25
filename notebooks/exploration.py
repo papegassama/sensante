@@ -4,6 +4,7 @@ Lab 1 : Git, Python et Structure Projet
 """
 
 import pandas as pd
+import matpotlib as plt
 
 # === CHARGER LES DONNEES ===
 
@@ -63,6 +64,9 @@ sexe_diag =df.groupby(["sexe", "diagnostic"]).size()
 
 for (sexe, diag), count in sexe_diag.items() :
 	print(f"{sexe:6s} | {diag:12s} : {count:3d} patients")
+
+
+
 
 print("=" * 50)
 print("Exploration terminee !!")
