@@ -16,7 +16,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 # Étape 2 : Charger et préparer les données
 # ------------------------------
 print("Etape 2 : Chargement et préparation des données")
-df = pd.read_csv("data/patients_dakar.csv")
+df = pd.read_csv("data/patients_dakar.csv.csv")
 print(f"Dataset : {df.shape[0]} patients, {df.shape[1]} colonnes")
 print(f"Colonnes : {list(df.columns)}")
 print(f"Diagnostics :\n{df['diagnostic'].value_counts()}")
