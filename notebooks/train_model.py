@@ -20,7 +20,7 @@ df = pd.read_csv("data/patients_dakar.csv.csv")
 print(f"Dataset : {df.shape[0]} patients, {df.shape[1]} colonnes")
 print(f"Colonnes : {list(df.columns)}")
 print(f"Diagnostics :\n{df['diagnostic'].value_counts()}")
-
+print("\n")
 # Encodage des variables catégoriques
 
 le_sexe = LabelEncoder()
@@ -35,7 +35,7 @@ feature_cols = ['age', 'sexe_encoded', 'temperature', 'tension_sys',
 X = df[feature_cols]
 y = df['diagnostic']
 print(f"Features : {X.shape}, Cible : {y.shape}")
-
+print("\n")
 # ------------------------------
 # Étape 3 : Séparer entraînement (80%) et test (20%)
 # ------------------------------
@@ -45,7 +45,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 print(f"Entraînement : {X_train.shape[0]} patients")
 print(f"Test : {X_test.shape[0]} patients")
-
+print("\n") 
 # ------------------------------
 # Étape 4 : Entraîner le modèle RandomForest
 # ------------------------------
@@ -56,7 +56,7 @@ print("Modèle entraîné !")
 print(f"Nombre d'arbres : {model.n_estimators}")
 print(f"Nombre de features : {model.n_features_in_}")
 print(f"Classes : {list(model.classes_)}")
-
+print("\n")
 # ------------------------------
 # Étape 5 : Évaluer le modèle
 # ------------------------------
@@ -75,7 +75,7 @@ print(cm)
 # Rapport de classification
 print("\nRapport de classification :")
 print(classification_report(y_test, y_pred))
-
+print("\n")
 # Visualisation et sauvegarde de la matrice de confusion
 os.makedirs("figures", exist_ok=True)
 plt.figure(figsize=(8, 6))
@@ -89,7 +89,7 @@ plt.tight_layout()
 plt.savefig("figures/confusion_matrix.png", dpi=150)
 plt.show()
 print("Figure sauvegardée dans figures/confusion_matrix.png")
-
+print("\n")
 # ------------------------------
 # Étape 6 : Sérialiser le modèle et les encodeurs
 # ------------------------------
@@ -107,7 +107,7 @@ joblib.dump(le_sexe, "models/encoder_sexe.pkl")
 joblib.dump(le_region, "models/encoder_region.pkl")
 joblib.dump(feature_cols, "models/feature_cols.pkl")
 print("Encodeurs et métadonnées sauvegardés.")
-
+print("\n")
 # ------------------------------
 # Étape 7 : Tester le modèle sérialisé
 # ------------------------------
@@ -118,7 +118,7 @@ le_sexe_loaded = joblib.load("models/encoder_sexe.pkl")
 le_region_loaded = joblib.load("models/encoder_region.pkl")
 print(f"Modèle rechargé : {type(model_loaded).__name__}")
 print(f"Classes : {list(model_loaded.classes_)}")
-
+print("\n")
 # Nouveau patient fictif
 nouveau_patient = {
     'age': 28,
