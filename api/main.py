@@ -5,11 +5,22 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 import joblib
 import numpy as np
+from fastapi.middleware.cors import CORSMiddleware
 # Créer l'application
 app = FastAPI(
     title="SenSante API",
     description="Assistant pré-diagnostic médical pour le Sénégal",
     version="0.2.0"
+)
+
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En dev : tout accepter
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Route de base : vérifier que l'API fonctionne
