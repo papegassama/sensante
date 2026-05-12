@@ -1,44 +1,23 @@
 # api/main.py
 # API FastAPI pour SenSante - Assistant pré-diagnostic médical
+# Lab 3 : API FastAPI
+# Lab 5 : Intégration LLM Groq
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import joblib
 import numpy as np
-from fastapi.middleware.cors import CORSMiddleware
-# Créer l'application
-app = FastAPI(
-    title="SenSante API",
-    description="Assistant pré-diagnostic médical pour le Sénégal",
-    version="0.2.0"
-)
+import os
+from dotenv import load_dotenv
+from groq import Groq
 
-
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # En dev : tout accepter
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Route de base : vérifier que l'API fonctionne
-@app.get("/health")
-def health_check():
-    """Vérification de l'état de l'API."""
-    return {
-        "status": "ok",
-        "message": "SenSante API is running"
-    }
-
-# Pydantic model pour la requête de prédiction
-
+# --- Charger les variables d'environnement ---
+load_dotenv()
 
 # --- Schémas Pydantic ---
-
 class PatientInput(BaseModel):
-    #Données d'entrée : les symptômes d'un patient.
+    """Données d'entrée : les symptômes d'un patient."""
     age: int = Field(..., ge=0, le=120, description="Age en années")
     sexe: str = Field(..., description="Sexe : M ou F")
     temperature: float = Field(..., ge=35.0, le=42.0,
@@ -51,15 +30,47 @@ class PatientInput(BaseModel):
     region: str = Field(..., description="Région du Sénégal")
 
 class DiagnosticOutput(BaseModel):
-    #Données de sortie : le résultat du diagnostic.
+    """Données de sortie : le résultat du diagnostic."""
     diagnostic: str = Field(..., description="Diagnostic prédit")
     probabilite: float = Field(..., description="Probabilité du diagnostic")
     confiance: str = Field(..., description="Niveau de confiance")
     message: str = Field(..., description="Recommandation")
 
-#charger le modèle et les encodeurs
+# Schémas pour /explain (Lab 5)
+class ExplainInput(BaseModel):
+    """Données d'entrée pour l'explication LLM."""
+    diagnostic: str = Field(..., description="Diagnostic prédit par le modèle")
+    probabilite: float = Field(..., description="Probabilité du diagnostic")
+    age: int = Field(...)
+    sexe: str = Field(...)
+    temperature: float = Field(...)
+    region: str = Field(...)
 
-# --- Charger le modèle et les encodeurs au démarrage ---
+class ExplainOutput(BaseModel):
+    """Données de sortie pour l'explication LLM."""
+    explication: str = Field(..., description="Explication en français")
+    modele_llm: str = Field(default="llama-3.1-8b-instant",
+                            description="Modèle LLM utilisé")
+
+# ============================================================
+# --- Application FastAPI ---
+# ============================================================
+app = FastAPI(
+    title="SenSante API",
+    description="Assistant pré-diagnostic médical pour le Sénégal",
+    version="0.2.0"
+)
+
+# --- Configuration CORS (Lab 4) ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En dev : tout accepter
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- Chargement du modèle et des encodeurs au démarrage ---
 print("Chargement du modèle...")
 model = joblib.load("models/model.pkl")
 le_sexe = joblib.load("models/encoder_sexe.pkl")
@@ -68,7 +79,24 @@ feature_cols = joblib.load("models/feature_cols.pkl")
 print(f"Modèle chargé : {type(model).__name__}")
 print(f"Classes : {list(model.classes_)}")
 
-# endpoint /post/predict : recevoir les données d'un patient et retourner le diagnostic
+# --- Client Groq (chargé au démarrage) ---
+groq_client = None
+groq_api_key = os.getenv("GROQ_API_KEY")
+if groq_api_key:
+    groq_client = Groq(api_key=groq_api_key)
+    print("Client Groq initialisé.")
+else:
+    print("ATTENTION : GROQ_API_KEY non trouvée. /explain sera désactivé.")
+
+# ============================================================
+# --- Routes ---
+# ============================================================
+
+@app.get("/health")
+def health_check():
+    """Vérification de l'état de l'API."""
+    return {"status": "ok", "message": "SenSante API is running"}
+
 
 @app.post("/predict", response_model=DiagnosticOutput)
 def predict(patient: PatientInput):
@@ -140,3 +168,57 @@ def predict(patient: PatientInput):
         confiance=confiance,
         message=messages.get(diagnostic, "Consultez un médecin.")
     )
+
+
+# --- Prompt système pour le LLM (Lab 5) ---
+SYSTEM_PROMPT = """Tu es un assistant médical sénégalais.
+
+Tu reçois un diagnostic et des données patient.
+Explique le résultat en français simple,
+comme un médecin parlerait à son patient.
+Sois rassurant mais recommande toujours une consultation médicale.
+Maximum 3 phrases.
+
+Ne fais JAMAIS de diagnostic toi-même.
+Tu expliques uniquement le diagnostic fourni."""
+
+
+@app.post("/explain", response_model=ExplainOutput)
+def explain(data: ExplainInput):
+    """Expliquer un diagnostic en français avec un LLM (Groq / Llama 3)."""
+    
+    # Vérifier si le client Groq est disponible
+    if not groq_client:
+        return ExplainOutput(
+            explication="Service d'explication indisponible. Clé API non configurée.",
+            modele_llm="aucun"
+        )
+    
+    # Construire le user prompt avec les données du patient
+    user_prompt = (
+        f"Patient : {data.sexe}, {data.age} ans, "
+        f"région {data.region}\n"
+        f"Température : {data.temperature}°C\n"
+        f"Diagnostic du modèle : {data.diagnostic} "
+        f"(probabilité {data.probabilite:.0%})\n"
+        f"Explique ce résultat au patient."
+    )
+    
+    try:
+        # Appel à l'API Groq
+        response = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_tokens=200,
+            temperature=0.3
+        )
+        explication = response.choices[0].message.content
+        
+    except Exception as e:
+        # Gestion des erreurs (réseau, quota, etc.)
+        explication = f"Erreur lors de l'appel au LLM : {str(e)}"
+    
+    return ExplainOutput(explication=explication)
