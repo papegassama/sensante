@@ -7,14 +7,14 @@ venv/
 .env
 
 #Model ML
-models/*.pkl
+#models/*.pkl
 
 # Fichiers OS
 . DS_Store
 Thumbs.db
 
 #IDE
-.vscode/
+.vscode/-
 .idea/
 
 # Fichiers temporaires matplotlib
