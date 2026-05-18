@@ -27,14 +27,15 @@ Integration de Modeles IA - Dr. Toure
 ---
 
 title: Sensante
-emoji: 🦀
-colorFrom: green
-colorTo: blue
+emoji: 🚀
+colorFrom: blue
+colorTo: green
 sdk: docker
+app_file: app.py
 pinned: false
--------------
 
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+------------------------------------------------------------------------------------------------
 
 >>>>>>> 836146062c76d9ceaf2a6645d214392a12825262
 >>>>>>>
