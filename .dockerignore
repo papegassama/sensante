@@ -1,0 +1,7 @@
+# .dockerignore
+.env
+.gitignore
+__pycache__
+*.pyc
+.venv
+notebooks/
